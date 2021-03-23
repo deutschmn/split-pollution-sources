@@ -39,7 +39,10 @@ def load_metadata():
 # First we set a start and an end date for the data considered in this project.
 
 # %%
-def load_measurements(devices, start='2016-01-01 00:00:00', end='2021-01-01 00:00:00'):
+def load_measurements(devices, start='2016-01-01 08:00:00', end='2021-01-01 00:00:00'):
+    air_path = 'data/air/'
+    weather_path = 'data/city_level_data/csv/'
+
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
 
@@ -52,21 +55,21 @@ def load_measurements(devices, start='2016-01-01 00:00:00', end='2021-01-01 00:0
     weather_features = None
 
     for device_id in tqdm(devices):
-        air_df = pd.read_csv('data/air/' + device_id + '.csv')
+        air_df = pd.read_csv(air_path + device_id + '.csv')
         air_df['time'] = pd.to_datetime(air_df["time"])
         air_df = air_df.set_index('time', drop=False).reindex(index=date_idx)
         air_df['time'] = air_df.index
         air_df['device_id'] = device_id
 
         try:
-            weather_df = pd.read_csv('data/wea/' + device_id + '.csv')
-            weather_df['time'] = pd.to_datetime(weather_df["datetime"])
-            del weather_df['datetime']
+            weather_df = pd.read_csv(weather_path + device_id + '.csv')
+            weather_df['time'] = pd.to_datetime(weather_df['time'])
 
             both_df = air_df.merge(weather_df, on='time', how='left')
 
             measurements.append(both_df)
-        except Exception as e:
+        except FileNotFoundError as e:
+            print(e)
             measurements.append(air_df)
             no_weather_devices.append(device_id)
         
