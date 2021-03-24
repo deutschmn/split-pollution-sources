@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 def transform_preds_back(time_npy, pred_npy, devices, data_start, melted=True):
     parsed_timestamps = pd.DataFrame(time_npy).applymap(pd.Timestamp.fromtimestamp)
@@ -12,3 +13,12 @@ def transform_preds_back(time_npy, pred_npy, devices, data_start, melted=True):
         return pred_df.melt(ignore_index=False, var_name='device_id', value_name='pm25')
     else:
         return pred_df
+
+def plot_R(time_npy, R_npy, devices, device_id, data_start, prefix=""):
+    parsed_timestamps = pd.DataFrame(time_npy).applymap(pd.Timestamp.fromtimestamp)
+    date_idx = np.where(parsed_timestamps[0] == data_start)[0][0] + 1 # there is an off-by-one error somewhere
+    pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
+
+    device_idx = devices.index(device_id)
+    R_df = pd.DataFrame(R_npy[date_idx, :, device_idx, :], index=pred_index, columns=devices)
+    R_df.plot(kind='area', title=" - ".join([prefix, device_id]))
