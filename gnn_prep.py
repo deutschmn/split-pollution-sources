@@ -14,11 +14,17 @@ def transform_preds_back(time_npy, pred_npy, devices, data_start, melted=True):
     else:
         return pred_df
 
-def plot_R(time_npy, R_npy, devices, device_id, data_start, prefix=""):
+def transform_R_back(time_npy, R_npy, devices, data_start, prefix=""):
+    if R_npy.shape[0] == 0:
+        return None
+
     parsed_timestamps = pd.DataFrame(time_npy).applymap(pd.Timestamp.fromtimestamp)
+    # TODO find out whether off-by-one is still there
     date_idx = np.where(parsed_timestamps[0] == data_start)[0][0] + 1 # there is an off-by-one error somewhere
     pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
 
-    device_idx = devices.index(device_id)
-    R_df = pd.DataFrame(R_npy[date_idx, :, device_idx, :], index=pred_index, columns=devices)
-    R_df.plot(kind='area', title=" - ".join([prefix, device_id]))
+    R_dict = {}
+    for device_idx, device_id in enumerate(devices):
+        R_dict[device_id] = pd.DataFrame(R_npy[date_idx, :, device_idx, :], index=pred_index, columns=devices)
+
+    return R_dict
