@@ -23,6 +23,10 @@ def transform_R_back(time_npy, R_npy, devices, data_start, prefix=""):
     date_idx = np.where(parsed_timestamps[0] == data_start)[0][0] + 1 # there is an off-by-one error somewhere
     pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
 
+    # if we use PM2.5 history, we have no R for the history
+    # -> use only the last preds and don't look at the history
+    pred_index = pred_index[-R_npy.shape[1]:]
+
     R_dict = {}
     for device_idx, device_id in enumerate(devices):
         R_dict[device_id] = pd.DataFrame(R_npy[date_idx, :, device_idx, :], index=pred_index, columns=devices)
