@@ -16,10 +16,6 @@ def get_date_slider(data, start=None, end=None):
     days_list = pd.date_range(start, end, freq='D')
     days_list_formatted = [(date.strftime(' %d-%m-%y '), date) for date in days_list]
 
-    ld1 = data.events[0]
-    start = ld1.start - datetime.timedelta(days=14)
-    end = ld1.end + datetime.timedelta(days=14)
-
     return widgets.SelectionRangeSlider(
         options=days_list_formatted,
         index=(0, len(days_list_formatted) - 1),
