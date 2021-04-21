@@ -1,6 +1,9 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
-# %%
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -11,16 +14,20 @@ import ndpretty
 from tqdm.notebook import tqdm
 
 
-# %%
+# In[2]:
+
+
 ndpretty.default()
 
-# %% [markdown]
+
 # ## Load data
 # 
 # ### Metadata
 
-# %%
-def load_metadata():
+# In[3]:
+
+
+def load_metadata_city_device_mixed():
     bj = pd.read_csv('data/bj_stations.csv')
     bj = bj.rename(columns={'deviceid': 'device_id'})
     bj["city"] = "Beijing"
@@ -31,17 +38,31 @@ def load_metadata():
     meta = gpd.GeoDataFrame(meta, geometry=gpd.points_from_xy(meta.lon, meta.lat))
     return meta
 
+# load_metadata_city_device_mixed()
+
+
+# In[4]:
+
+
+def load_metadata():
+    meta = pd.read_csv('data/full_city_data/city_location.csv')
+    meta = meta.rename(columns={'deviceid': 'device_id'})
+    meta = gpd.GeoDataFrame(meta, geometry=gpd.points_from_xy(meta.lon, meta.lat))
+    return meta
+
 # load_metadata()
 
-# %% [markdown]
+
 # ### Air quality measurements and weather data
 # 
 # First we set a start and an end date for the data considered in this project.
 
-# %%
+# In[5]:
+
+
 def load_measurements(devices, start='2016-01-01 08:00:00', end='2021-01-01 00:00:00'):
-    air_path = 'data/air/'
-    weather_path = 'data/city_level_data/csv/'
+    air_path = 'data/full_city_data/air/'
+    weather_path = 'data/full_city_data/wea/'
 
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
@@ -93,7 +114,9 @@ def load_measurements(devices, start='2016-01-01 08:00:00', end='2021-01-01 00:0
 # load_measurements(devices)
 
 
-# %%
+# In[6]:
+
+
 class Event:
     def __init__(self, name, start, end, color):
         self.name = name
@@ -117,7 +140,9 @@ def get_beijing_lockdowns():
 # get_beijing_lockdowns()
 
 
-# %%
+# In[11]:
+
+
 class CityData:
     def __init__(self, name, metadata, measurements, air_features, weather_features, events):
         self.name = name
@@ -143,5 +168,4 @@ def load_beijing_data():
     return CityData('Beijing', load_metadata(), *load_measurements(devices), get_beijing_lockdowns())
 
 # beijing_data = load_beijing_data()
-
 
