@@ -60,10 +60,7 @@ def load_metadata():
 # In[5]:
 
 
-def load_measurements(devices, start='2016-01-01 08:00:00', end='2021-01-01 00:00:00'):
-    air_path = 'data/full_city_data/air/'
-    weather_path = 'data/full_city_data/wea/'
-
+def load_measurements(devices, air_path='data/full_city_data/air/', weather_path='data/full_city_data/wea/', start='2016-01-01 08:00:00', end='2021-01-01 00:00:00'):
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
 
@@ -140,7 +137,7 @@ def get_beijing_lockdowns():
 # get_beijing_lockdowns()
 
 
-# In[11]:
+# In[7]:
 
 
 class CityData:
@@ -163,9 +160,23 @@ class CityData:
     def __repr__(self):
         return f"CityData '{self.name}'"
 
-def load_beijing_data():
-    devices = load_metadata()['device_id'].unique()
-    return CityData('Beijing', load_metadata(), *load_measurements(devices), get_beijing_lockdowns())
 
-# beijing_data = load_beijing_data()
+# In[8]:
+
+
+def load_beijing_data():
+    devices = load_metadata_city_device_mixed()['device_id'].unique()
+    return CityData('Beijing', load_metadata_city_device_mixed(), *load_measurements(devices, air_path='data/air/', weather_path='data/city_level_data/csv/'), get_beijing_lockdowns())
+
+# load_beijing_data()
+
+
+# In[9]:
+
+
+def load_hebei_city_data():
+    devices = load_metadata()['device_id'].unique()
+    return CityData('Hebei', load_metadata(), *load_measurements(devices), get_beijing_lockdowns())
+
+# load_hebei_city_data()
 
