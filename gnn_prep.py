@@ -2,32 +2,36 @@ import pandas as pd
 import numpy as np
 
 class Experiment:
-    def __init__(self, name, path, start_date, devices):
+    def __init__(self, name, start_date, devices, preds, R_in=None, R_out=None, R_npy=None):
         self.name = name
-        self.path = path
         self.start_date = start_date
         self.devices = devices
-        self.preds, self.R_in, self.R_out, self.R_npy = self.load_experiment()
+        self.preds = preds
+        self.R_in = R_in
+        self.R_out = R_out
+        self.R_npy = R_npy
 
-    def load_experiment(self):
-        time_npy = np.load(self.path + 'time.npy')
-        pred_npy = np.load(self.path + 'predict.npy')
+    @classmethod
+    def load(cls, name, path, start_date, devices):
+        time_npy = np.load(path + 'time.npy')
+        pred_npy = np.load(path + 'predict.npy')
 
-        preds = transform_preds_back(time_npy, pred_npy, self.devices, self.start_date, melted=True)
+        preds = transform_preds_back(time_npy, pred_npy, devices, start_date, melted=True)
 
         try:
-            R_npy = np.load(self.path + 'R.npy')
-            R_in, R_out = transform_R_back(time_npy, R_npy, self.devices, self.start_date)
+            R_npy = np.load(path + 'R.npy')
+            R_in, R_out = transform_R_back(time_npy, R_npy, devices, start_date)
         except FileNotFoundError as e:
-            print(f"Couldn't load R.npy for '{self.name}': {e}")
+            print(f"Couldn't load R.npy for '{name}': {e}")
             R_in, R_out, R_npy = None, None, None
 
         preds['time'] = preds.index
-        return preds, R_in, R_out, R_npy
+        return cls(name, start_date, devices, preds, R_in, R_out, R_npy)
 
     def __repr__(self):
         return f"Experiment '{self.name}'"
-        
+
+
 
 def transform_preds_back(time_npy, pred_npy, devices, data_start, melted=True):
     parsed_timestamps = pd.DataFrame(time_npy).applymap(pd.Timestamp.fromtimestamp)
