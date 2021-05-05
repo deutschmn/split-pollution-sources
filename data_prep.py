@@ -17,7 +17,7 @@ from tqdm.notebook import tqdm
 # In[2]:
 
 
-ndpretty.default()
+# ndpretty.default()
 
 
 # ## Load data

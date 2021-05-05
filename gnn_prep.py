@@ -16,15 +16,29 @@ class Experiment:
 
     @classmethod
     def load(cls, name, path, start_date, devices):
+        """Loads an experiment
+
+        Args:
+            name (str): name of the experiment
+            path (str): where to load it from
+            start_date (str or None): from which time stamp to look at prediction. if None, first prediction for each time step is returned
+            devices (List[str]): list of devices
+
+        Returns:
+            Experiment
+        """
         time_npy = np.load(path + 'time.npy')
         pred_npy = np.load(path + 'predict.npy')
 
         date_idx, parsed_timestamps = get_date_idx(time_npy, start_date)
-        preds = transform_preds_back(parsed_timestamps, pred_npy[date_idx], devices, start_date, melted=True)
+        preds = transform_preds_back(date_idx, parsed_timestamps, pred_npy, devices, start_date, melted=True)
 
         try:
             R_npy = np.load(path + 'R.npy')
-            R_in, R_out = transform_R_back(parsed_timestamps, R_npy[date_idx], devices, start_date)
+            if R_npy.shape[0] == 0:
+                R_in, R_out = None, None
+            else:
+                R_in, R_out = transform_R_back(date_idx, parsed_timestamps, R_npy, devices, start_date)
         except FileNotFoundError as e:
             print(f"Couldn't load R.npy for '{name}': {e}")
             R_in, R_out, R_npy = None, None, None
@@ -44,14 +58,23 @@ class Experiment:
 
 def get_date_idx(time_npy, data_start):
     parsed_timestamps = pd.DataFrame(time_npy).applymap(pd.Timestamp.fromtimestamp)
-    # TODO find out whether off-by-one is still there
-    date_idx = np.where(parsed_timestamps[0] == data_start)[0][0] + 1 # there is an off-by-one error somewhere
+    if data_start is not None:
+        # TODO find out whether off-by-one is still there
+        date_idx = np.where(parsed_timestamps[0] == data_start)[0][0] + 1 # there is an off-by-one error somewhere
+    else:
+        date_idx = None
     return date_idx, parsed_timestamps
 
 
-def transform_preds_back(parsed_timestamps, pred_npy, devices, data_start, melted=True):
-    pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
-    pred_df = pd.DataFrame(pred_npy[:, :, 0], index=pred_index, columns=devices)
+def transform_preds_back(date_idx, parsed_timestamps, pred_npy, devices, data_start, melted=True):
+    if data_start is None:
+        # take the first prediction of each time step 
+        # (only makes sense if hist_len = 0, otherwise we're probably plotting the ground truth)
+        pred_index = pd.Index(parsed_timestamps[0])
+        pred_df = pd.DataFrame(pred_npy[:,0,:,0], index=pred_index, columns=devices)
+    else:
+        pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
+        pred_df = pd.DataFrame(pred_npy[date_idx, :, :, 0], index=pred_index, columns=devices)
 
     if melted:
         return pred_df.melt(ignore_index=False, var_name='device_id', value_name='pm25')
@@ -59,11 +82,11 @@ def transform_preds_back(parsed_timestamps, pred_npy, devices, data_start, melte
         return pred_df
 
 
-def transform_R_back(parsed_timestamps, R_npy, devices, data_start):
-    if R_npy.shape[0] == 0:
-        return None, None
-
-    pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
+def transform_R_back(date_idx, parsed_timestamps, R_npy, devices, data_start):
+    if data_start is None:
+        pred_index = pd.Index(parsed_timestamps[0])
+    else:
+        pred_index = pd.Index(parsed_timestamps[parsed_timestamps[0] == data_start].iloc[0], name='time')
 
     # if we use PM2.5 history, we have no R for the history
     # -> use only the last preds and don't look at the history
@@ -72,8 +95,12 @@ def transform_R_back(parsed_timestamps, R_npy, devices, data_start):
     R_in = {}
     R_out = {}
     for device_idx, device_id in enumerate(devices):
-        R_in[device_id] = pd.DataFrame(R_npy[:, device_idx, :], index=pred_index, columns=devices)
-        R_out[device_id] = pd.DataFrame(R_npy[:, :, device_idx], index=pred_index, columns=devices)
+        if data_start is None:
+            R_in[device_id] = pd.DataFrame(R_npy[:, 0, device_idx, :], index=pred_index, columns=devices)
+            R_out[device_id] = pd.DataFrame(R_npy[:, 0, :, device_idx], index=pred_index, columns=devices)
+        else:
+            R_in[device_id] = pd.DataFrame(R_npy[date_idx, :, device_idx, :], index=pred_index, columns=devices)
+            R_out[device_id] = pd.DataFrame(R_npy[date_idx, :, :, device_idx], index=pred_index, columns=devices)
 
     return R_in, R_out
 
